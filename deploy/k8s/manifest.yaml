@@ -1,0 +1,1160 @@
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: pv-iscsi-immich-db
+  labels:
+    app: immich-postgresql
+spec:
+  storageClassName: "freenas-iscsi-manual-csi"
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: org.democratic-csi.node-manual
+    readOnly: false
+    fsType: xfs
+    volumeHandle: pv-iscsi-immich-db
+    volumeAttributes:
+      portal: storage-server-lagg.lan:3260
+      iqn: iqn.2005-10.org.freenas.ctl:immich-db
+      lun: "0"
+      node_attach_driver: iscsi
+      provisioner_driver: node-manual
+
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: pv-iscsi-immich-redis
+  labels:
+    app: immich-redis
+spec:
+  storageClassName: "freenas-iscsi-manual-csi"
+  capacity:
+    storage: 8Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: org.democratic-csi.node-manual
+    readOnly: false
+    fsType: xfs
+    volumeHandle: pv-iscsi-immich-redis
+    volumeAttributes:
+      portal: storage-server-lagg.lan:3260
+      iqn: iqn.2005-10.org.freenas.ctl:immich-redis
+      lun: "0"
+      node_attach_driver: iscsi
+      provisioner_driver: node-manual
+
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: pv-nfs-immich-library
+spec:
+  storageClassName: "freenas-nfs-manual-csi"
+  capacity:
+    storage: 600Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  mountOptions:
+    - nfsvers=4
+    - nolock
+    - noatime
+  csi:
+    driver: org.democratic-csi.node-manual
+    readOnly: false
+    fsType: nfs
+    volumeHandle: pv-nfs-immich-library
+    volumeAttributes:
+      server: storage-server-lagg.lan
+      share: /mnt/r10_8tb/coen/media_library
+      node_attach_driver: nfs
+      provisioner_driver: node-manual
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pvc-nfs-immich-library
+  namespace: tools
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "freenas-nfs-manual-csi"
+spec:
+  storageClassName: freenas-nfs-manual-csi
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 600Gi
+  volumeName: pv-nfs-immich-library
+
+---
+kind: SealedSecret
+apiVersion: bitnami.com/v1alpha1
+metadata:
+  name: immich-secret-env
+  namespace: tools
+spec:
+  encryptedData:
+    DB_PASSWORD: AgDtAORH6jgpZcEotRT2o7aiReafGHDfpGLSuzC6XI9R+RcPP6kxi8TejLJTVXDrrUvdYABYlUuLMHgHeegol2/0wk4exwBXwtAPp8/PMKt4JP+5Cj2YMPlT87KNUJqbRxOv59qG+gVwf/c5cohlMd6aK8I0GxuVZNnhfTgfxvNJbnjv2dc91KbKeo6Z1uDazqwwvZLnnG1BarpF6X1iFaiwA2uj7eclbvd0WGxSRlKFYbIpd9/vhWqF7zfsCEQ5Cnhv0uCKBRms8CaWdLisHV+UXQtD7hMAH6T9LP6wVcRgTdyUFnkhxwpdBTEy4rg82g/WZw//wUVN1OQ7yK9vMWoZzNbMOjkHEG0SqM+bJ7E8O9RW0DSTrQ6bD/xiHP5BAERp/+JurLCJjCwIi9P7owGwYjGd2SeXxTO/0XFNIuByy20djkkE9AvNfRMibrzAiC1hHcfJLCyyibq3fs+TKh6XWOcM4BRONmiRy57pW0tRKN8qWSMD4tRnbJxil0b8IliMpV1SdZ4rr94CR/d6y8933YFTNZ0pRjbp2xJ54HaE8cPdrXXes4BF3o5ha5dN/EdCTQebhLt+FxneobH05xCO2wZvYt/GdKxUiSs3QPKnbLvcIYvvUoHLiUuOxqPtqIIPNo+8vz7jQyeUbnaj7rMIyo3LdwJc2UlgTOEJ2QnDw3vO9PhesCM8N38dClfi7QgPM/GxLCzh1XOp
+    DB_USERNAME: AgBq4CAFdlFAulbUjfAsNG39OLsLv/kXfr3cT3QEleFR6C4d1BY4kv4qWQotgmiPTyeZl1vKSyC5OZvgZCmFmtYEV19pNEl7+VHq3Nt2c+2eiti0sp8/ozLo0RddX0W5yvQTx/PRrUw3G7po+enhDKnwO3B2w8Vkuo8gFJyV40tbMF0oj+pItD0Zb+vf5fR+I/CrTH3Sp3BqioIvnWXPZKY7wxIbF3W2rdLbvm6xJwIelXA01/Dde0bDB7mzVtFPwqaW5w4XPG7m19bHtgq5av9SSinD/+FmWRZ9RA7st4A286hwFRuF3PJ89MY6EKkqkgKyP0Ij+WdLokI0r+uAX6MPFnEUCINyJvnL7Yt325PgY0o1BAkIcmSpOV/gGR7z17wHFLjZAxRYh0Ecr1YxO8iJTC43F5sITXtxhSg51lspVTyzxSzQThHQi7L/t99HftpoZD9g0Q/Z3wQH/NAOIGdYDEWj4jcz8MMBbGNWH1M/tcL9HDf2+CLJ5y37RPLdyBTVSMfWZriC+a8NJmkn5mss51MI3gjP+1NAputFuTnS7lMXbVl+x77SSFLmDwr/0tEa2SLfQj9cmrYzI/f/Sd1D2V2AC/bYQjSwZunOcJ14lT9OAFhcyj1Jk4zXg097Bh68VZ+jehoNpPrQCzZYYVlsKwtIb5cm10XWaVAcy8yfjJLNktZtRuSSFqm8Y/y3Vq9LOaIq5vQ=
+    MAPBOX_KEY: AgB4vTu0nIN6G7z8HLh1tnrvwsrMsxDUjiLK9qmB7+iBxMWwH7CZrwuKKeJh4rQmPmCM9bbeKi69Me+/pCVuAughMIWp8YFg8ZlWhYfNatQHFKHQPvV97i1sj1DCeJGOsHy+M6cp8tIEU3LWQ3ipbWXi8EYAsKuGOgeeG+moZOjNEWSmzjQO7jEmwlUVBbdr0C7SZl1fnDjbjjE267JofO/fCP3N+uT1esOVGCp86b7cYsTt/UrAy54mUPuuc3DISozfFTja8mHPXWQyVPaljhWJwfbCaW3cW+V0JYsCrSw4mFTZ93bHWFTEJ+f9j68pwhZoAZ9UE5l24cMcq9PybITwF1ydRs1ho3HI9SEOdpg3TXYWj9sAy6+lCdK4DLipOUBkQZmk/iC1KIt1DHXaKLriZRdMWoU0X74Xx2iOxoDOeTIFHjUwrzfSAHIdQildF2LSQ9vVRZJvwupIkcwsrmDEENncgwxDbJ1VM7km/9H2761JRfz0qJyF43qG3fCY6+4AUGcHtboGskBZ4dwTgwYTuVvY+xK4aR6k69uWYW+nR0O6HFEC9NE2uaF0hSa7+Ad1CFM4c0feEwPiURdtxM6pv2ug4jLhWBThYXZ2fBCpckQfauu+BXdhJPZaYgch0Rbbl1NcOvYSmL9E2fOsU/LmHdu4XmNUEk9jiGTLnWcDbAwcT1xrPYBM2BJH06dUl8H3yOG+DhXdlFmqaGym7FLjjOYgOn5oQF9KnLRw/sV77/8i1mTX41vrSSoX9cmulg7yl21C2Q17NKLgCVLOGOfrCIlgV5pg+0MacHXlohIc4shzsSYqI/xcFKPhuaQl
+    POSTGRESS_PASSWORD: AgB8vzsy+mDCbIuYN8N6wa754rpO0NGjsjut0p6Qx0xBMNidylWdXGj5P+pEGnhdUrZNXpNO+kwbqz9wbREIiPBiNDwWcUlLL1X7hzX51t1bQ13IveUS065k7vEqbC1TCxKzmo7BMt+Wu+eevuU+JnPR81qa92gqz4FyFpPwwl6kC7Mp4dfdWYvPuZpc7UnTrkMbjNW2z1Pe+rpIjMjOIrqM2e5nNu/OIabmTHOisAdj9o2IFgwe4Ze4NpAHLdy4XhU1bs9luMywWUXu0/Ibrt5sCTtZ2omu992V0PH0mAx3LVBjfLEVMUTdYiKxkGXI91DKEJJgOFrGuUHevqEE+TpIe1M0RvT8r45ka8cQYsPIEa0AQjjd1Hrkh/NBStcKJxZ37vhFSMEvkt+e8f4MwzfqMyR7wB2fJMt4N5Bzz+KySVsXyjMZ3LHaaPicw9H1hDZf2YqMnkvUtmwYLvxSFDU8a+HmVRUmLAgPaN2icf798XAX+BnlJjjRIL7pNNET4QTo05ARGQXpP8sRIzjw3C2XksPCi7w7WN33ovoZMsRrOhhx23IgC85N2ijfvQJH95xN/ZJqwrjJLjQR+TyEkI2fKRp/o377ntOsSw/e/9IZNkdn1IjlKq8SfFDjjn5+xeVj8ri1BhgEfoLigSqUJBUt54nEFA8AgMADg5os5O5/mRRQcnx19DbPnTPOdD1a7tqW6DoLDggNS3/Q
+  template:
+    type: Opaque
+    metadata:
+      labels:
+        app: immich-postgresql
+      name: immich-secret-env
+      namespace: tools
+
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: immich-redis-configuration
+  namespace: tools
+  labels:
+    app: immich-redis
+data:
+  redis.conf: |-
+    # User-supplied common configuration:
+    # Enable AOF https://redis.io/topics/persistence#append-only-file
+    appendonly yes
+    # Disable RDB persistence, AOF persistence already enabled.
+    save ""
+    # End of common configuration
+  master.conf: |-
+    dir /data
+    # User-supplied master configuration:
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+    # End of master configuration
+  replica.conf: |-
+    dir /data
+    # User-supplied replica configuration:
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+    # End of replica configuration
+
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: immich-redis-health
+  namespace: tools
+  labels:
+    app: immich-redis
+data:
+  ping_readiness_local.sh: |-
+    #!/bin/bash
+
+    [[ -f $REDIS_PASSWORD_FILE ]] && export REDIS_PASSWORD="$(< "${REDIS_PASSWORD_FILE}")"
+    [[ -n "$REDIS_PASSWORD" ]] && export REDISCLI_AUTH="$REDIS_PASSWORD"
+    response=$(
+      timeout -s 3 $1 \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    if [ "$response" != "PONG" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_liveness_local.sh: |-
+    #!/bin/bash
+
+    [[ -f $REDIS_PASSWORD_FILE ]] && export REDIS_PASSWORD="$(< "${REDIS_PASSWORD_FILE}")"
+    [[ -n "$REDIS_PASSWORD" ]] && export REDISCLI_AUTH="$REDIS_PASSWORD"
+    response=$(
+      timeout -s 3 $1 \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    responseFirstWord=$(echo $response | head -n1 | awk '{print $1;}')
+    if [ "$response" != "PONG" ] && [ "$responseFirstWord" != "LOADING" ] && [ "$responseFirstWord" != "MASTERDOWN" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_readiness_master.sh: |-
+    #!/bin/bash
+
+    [[ -f $REDIS_MASTER_PASSWORD_FILE ]] && export REDIS_MASTER_PASSWORD="$(< "${REDIS_MASTER_PASSWORD_FILE}")"
+    [[ -n "$REDIS_MASTER_PASSWORD" ]] && export REDISCLI_AUTH="$REDIS_MASTER_PASSWORD"
+    response=$(
+      timeout -s 3 $1 \
+      redis-cli \
+        -h $REDIS_MASTER_HOST \
+        -p $REDIS_MASTER_PORT_NUMBER \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    if [ "$response" != "PONG" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_liveness_master.sh: |-
+    #!/bin/bash
+
+    [[ -f $REDIS_MASTER_PASSWORD_FILE ]] && export REDIS_MASTER_PASSWORD="$(< "${REDIS_MASTER_PASSWORD_FILE}")"
+    [[ -n "$REDIS_MASTER_PASSWORD" ]] && export REDISCLI_AUTH="$REDIS_MASTER_PASSWORD"
+    response=$(
+      timeout -s 3 $1 \
+      redis-cli \
+        -h $REDIS_MASTER_HOST \
+        -p $REDIS_MASTER_PORT_NUMBER \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    responseFirstWord=$(echo $response | head -n1 | awk '{print $1;}')
+    if [ "$response" != "PONG" ] && [ "$responseFirstWord" != "LOADING" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_readiness_local_and_master.sh: |-
+    script_dir="$(dirname "$0")"
+    exit_status=0
+    "$script_dir/ping_readiness_local.sh" $1 || exit_status=$?
+    "$script_dir/ping_readiness_master.sh" $1 || exit_status=$?
+    exit $exit_status
+  ping_liveness_local_and_master.sh: |-
+    script_dir="$(dirname "$0")"
+    exit_status=0
+    "$script_dir/ping_liveness_local.sh" $1 || exit_status=$?
+    "$script_dir/ping_liveness_master.sh" $1 || exit_status=$?
+    exit $exit_status
+
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: immich-redis-scripts
+  namespace: tools
+  labels:
+    app: immich-redis
+data:
+  start-master.sh: |
+    #!/bin/bash
+
+    [[ -f $REDIS_PASSWORD_FILE ]] && export REDIS_PASSWORD="$(< "${REDIS_PASSWORD_FILE}")"
+    if [[ ! -f /opt/bitnami/redis/etc/master.conf ]];then
+        cp /opt/bitnami/redis/mounted-etc/master.conf /opt/bitnami/redis/etc/master.conf
+    fi
+    if [[ ! -f /opt/bitnami/redis/etc/redis.conf ]];then
+        cp /opt/bitnami/redis/mounted-etc/redis.conf /opt/bitnami/redis/etc/redis.conf
+    fi
+    ARGS=("--port" "${REDIS_PORT}")
+    ARGS+=("--protected-mode" "no")
+    ARGS+=("--include" "/opt/bitnami/redis/etc/redis.conf")
+    ARGS+=("--include" "/opt/bitnami/redis/etc/master.conf")
+    exec redis-server "${ARGS[@]}"
+  start-replica.sh: |
+    #!/bin/bash
+
+    get_port() {
+        hostname="$1"
+        type="$2"
+
+        port_var=$(echo "${hostname^^}_SERVICE_PORT_$type" | sed "s/-/_/g")
+        port=${!port_var}
+
+        if [ -z "$port" ]; then
+            case $type in
+                "SENTINEL")
+                    echo 26379
+                    ;;
+                "REDIS")
+                    echo 6379
+                    ;;
+            esac
+        else
+            echo $port
+        fi
+    }
+
+    get_full_hostname() {
+        hostname="$1"
+        echo "${hostname}.${HEADLESS_SERVICE}"
+    }
+
+    REDISPORT=$(get_port "$HOSTNAME" "REDIS")
+
+    [[ -f $REDIS_PASSWORD_FILE ]] && export REDIS_PASSWORD="$(< "${REDIS_PASSWORD_FILE}")"
+    [[ -f $REDIS_MASTER_PASSWORD_FILE ]] && export REDIS_MASTER_PASSWORD="$(< "${REDIS_MASTER_PASSWORD_FILE}")"
+    if [[ ! -f /opt/bitnami/redis/etc/replica.conf ]];then
+        cp /opt/bitnami/redis/mounted-etc/replica.conf /opt/bitnami/redis/etc/replica.conf
+    fi
+    if [[ ! -f /opt/bitnami/redis/etc/redis.conf ]];then
+        cp /opt/bitnami/redis/mounted-etc/redis.conf /opt/bitnami/redis/etc/redis.conf
+    fi
+
+    echo "" >> /opt/bitnami/redis/etc/replica.conf
+    echo "replica-announce-port $REDISPORT" >> /opt/bitnami/redis/etc/replica.conf
+    echo "replica-announce-ip $(get_full_hostname "$HOSTNAME")" >> /opt/bitnami/redis/etc/replica.conf
+    ARGS=("--port" "${REDIS_PORT}")
+    ARGS+=("--replicaof" "${REDIS_MASTER_HOST}" "${REDIS_MASTER_PORT_NUMBER}")
+    ARGS+=("--protected-mode" "no")
+    ARGS+=("--include" "/opt/bitnami/redis/etc/redis.conf")
+    ARGS+=("--include" "/opt/bitnami/redis/etc/replica.conf")
+    exec redis-server "${ARGS[@]}"
+
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: immich-env
+  namespace: tools
+  labels:
+    app: immich
+data:
+  DB_DATABASE_NAME: "immich"
+  DB_HOSTNAME: "immich-postgresql-hl"
+  ENABLE_MAPBOX: "true"
+  NODE_ENV: "production"
+  REDIS_HOSTNAME: "immich-redis-hl"
+  REDIS_PORT: "6379"
+  REDIS_DBINDEX: "0"
+  REDIS_PASSWORD: ""
+  DISABLE_REVERSE_GEOCODING: "false"
+  REVERSE_GEOCODING_PRECISION: "3"
+  PUBLIC_LOGIN_PAGE_MESSAGE: ""
+  PUID: "1000"
+  PGID: "2000"
+
+---
+kind: ServiceAccount
+apiVersion: v1
+automountServiceAccountToken: true
+metadata:
+  name: immich-redis
+  namespace: tools
+  labels:
+    app: immich-redis
+
+---
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: immich-postgresql
+  namespace: tools
+  labels:
+    app: immich-postgresql
+spec:
+  replicas: 1
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Delete
+  serviceName: immich-postgresql-hl
+  updateStrategy:
+    rollingUpdate: {}
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: immich-postgresql
+  template:
+    metadata:
+      name: immich-postgresql
+      labels:
+        app: immich-postgresql
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: immich-postgresql
+                namespaces:
+                  - tools
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+      securityContext:
+        fsGroup: 2000
+      hostNetwork: false
+      hostIPC: false
+      containers:
+        - name: postgresql
+          image: "harbor.k8s.lan/dockerhub-proxy/bitnami/postgresql:14.5.0-debian-11-r6"
+          securityContext:
+            runAsUser: 1000
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRESQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: immich-env
+                  key: DB_DATABASE_NAME
+            - name: POSTGRESQL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: DB_USERNAME
+            - name: POSTGRES_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: POSTGRESS_PASSWORD
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: DB_PASSWORD
+          livenessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - exec pg_isready -U "${POSTGRESQL_USERNAME}" -d "dbname=${DB_DATABASE_NAME}" -h 127.0.0.1 -p 5432
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - -e
+                - |
+                  exec pg_isready -U "${POSTGRESQL_USERNAME}" -d "dbname=${DB_DATABASE_NAME}" -h 127.0.0.1 -p 5432
+                  [ -f /opt/bitnami/postgresql/tmp/.initialized ] || [ -f /bitnami/postgresql/.initialized ]
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits: {}
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: data
+              mountPath: /bitnami/postgresql
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        selector:
+          matchLabels:
+            app: immich-postgresql
+        accessModes:
+          - "ReadWriteOnce"
+        storageClassName: freenas-iscsi-manual-csi
+        resources:
+          requests:
+            storage: "10Gi"
+
+---
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: immich-redis-master
+  namespace: tools
+  labels:
+    app: immich-redis-master
+spec:
+  replicas: 1
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Delete
+  selector:
+    matchLabels:
+      app: immich-redis-master
+  serviceName: immich-redis-headless
+  updateStrategy:
+    rollingUpdate: {}
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: immich-redis-master
+    spec:
+      securityContext:
+        fsGroup: 2000
+      serviceAccountName: immich-redis
+      affinity:
+        podAffinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: immich-redis-master
+                namespaces:
+                  - "tools"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: redis
+          image: "harbor.k8s.lan/dockerhub-proxy/bitnami/redis:6.2.7-debian-11-r9"
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsUser: 1000
+          command:
+            - /bin/bash
+          args:
+            - -c
+            - /opt/bitnami/scripts/start-scripts/start-master.sh
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: REDIS_REPLICATION_MODE
+              value: master
+            - name: ALLOW_EMPTY_PASSWORD
+              value: "yes"
+            - name: REDIS_TLS_ENABLED
+              value: "no"
+            - name: REDIS_PORT
+              value: "6379"
+          ports:
+            - containerPort: 6379
+          livenessProbe:
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 6
+            successThreshold: 1
+            failureThreshold: 5
+            exec:
+              command:
+                - sh
+                - -c
+                - /health/ping_liveness_local.sh 5
+          readinessProbe:
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 2
+            successThreshold: 1
+            failureThreshold: 5
+            exec:
+              command:
+                - sh
+                - -c
+                - /health/ping_readiness_local.sh 1
+          resources: {}
+          volumeMounts:
+            - name: start-scripts
+              mountPath: /opt/bitnami/scripts/start-scripts
+            - name: health
+              mountPath: /health
+            - name: redis-data
+              mountPath: /data
+            - name: config
+              mountPath: /opt/bitnami/redis/mounted-etc
+            - name: redis-tmp-conf
+              mountPath: /opt/bitnami/redis/etc/
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: start-scripts
+          configMap:
+            name: immich-redis-scripts
+            defaultMode: 0755
+        - name: health
+          configMap:
+            name: immich-redis-health
+            defaultMode: 0755
+        - name: config
+          configMap:
+            name: immich-redis-configuration
+        - name: redis-tmp-conf
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+        labels:
+          app: immich-redis-master
+      spec:
+        selector:
+          matchLabels:
+            app: immich-redis
+        accessModes:
+          - "ReadWriteOnce"
+        storageClassName: freenas-iscsi-manual-csi
+        resources:
+          requests:
+            storage: "8Gi"
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: immich-machine-learning
+  namespace: tools
+  labels:
+    app: immich-machine-learning
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: immich-machine-learning
+  template:
+    metadata:
+      labels:
+        app: immich-machine-learning
+    spec:
+      securityContext:
+        fsGroup: 2000
+      serviceAccountName: default
+      dnsPolicy: ClusterFirst
+      initContainers:
+        - name: postgresql-isready
+          image: "harbor.k8s.lan/dockerhub-proxy/bitnami/postgresql:14.5.0-debian-11-r6"
+          env:
+            - name: POSTGRESQL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: DB_USERNAME
+            - name: POSTGRESQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: immich-env
+                  key: DB_DATABASE_NAME
+          command:
+            - /bin/sh
+            - -c
+            - until pg_isready -U "${POSTGRESQL_USERNAME}" -d "dbname=${DB_DATABASE_NAME}" -h immich-postgresql-hl -p 5432 ; do sleep 2 ; done
+      containers:
+        - name: immich-machine-learning
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-machine-learning:v1.43.0"
+          securityContext:
+            runAsUser: 1000
+          ports:
+            - containerPort: 3003
+          command:
+            - /bin/sh
+          args:
+            - ./entrypoint.sh
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: DB_PASSWORD
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: DB_USERNAME
+            - name: MAPBOX_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: MAPBOX_KEY
+          envFrom:
+            - configMapRef:
+                name: immich-env
+                optional: false
+          livenessProbe:
+            tcpSocket:
+              port: 3003
+            initialDelaySeconds: 0
+            failureThreshold: 3
+            timeoutSeconds: 1
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 3003
+            initialDelaySeconds: 0
+            failureThreshold: 3
+            timeoutSeconds: 1
+            periodSeconds: 10
+          startupProbe:
+            tcpSocket:
+              port: 3003
+            initialDelaySeconds: 0
+            failureThreshold: 30
+            timeoutSeconds: 1
+            periodSeconds: 5
+          volumeMounts:
+            - name: geocoding-dump
+              mountPath: /usr/src/app/.reverse-geocoding-dump
+            - name: library
+              mountPath: /usr/src/app/upload
+      volumes:
+        - name: geocoding-dump
+          emptyDir: {}
+        - name: library
+          persistentVolumeClaim:
+            claimName: pvc-nfs-immich-library
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: immich-microservice
+  namespace: tools
+  labels:
+    app: immich-microservice
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: immich-microservice
+  template:
+    metadata:
+      labels:
+        app: immich-microservice
+    spec:
+      securityContext:
+        fsGroup: 2000
+      dnsPolicy: ClusterFirst
+      initContainers:
+        - name: postgresql-isready
+          image: "harbor.k8s.lan/dockerhub-proxy/bitnami/postgresql:14.5.0-debian-11-r6"
+          env:
+            - name: POSTGRESQL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: DB_USERNAME
+            - name: POSTGRESQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: immich-env
+                  key: DB_DATABASE_NAME
+          command:
+            - /bin/sh
+            - -c
+            - until pg_isready -U "${POSTGRESQL_USERNAME}" -d "dbname=${DB_DATABASE_NAME}" -h immich-postgresql-hl -p 5432 ; do sleep 2 ; done
+      containers:
+        - name: immich-microservice
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-server:v1.47.3"
+          securityContext:
+            runAsUser: 1000
+          command:
+            - /bin/sh
+          args:
+            - ./start-microservices.sh
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: DB_PASSWORD
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: DB_USERNAME
+            - name: MAPBOX_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: MAPBOX_KEY
+          envFrom:
+            - configMapRef:
+                name: immich-env
+                optional: false
+          volumeMounts:
+            - name: geocoding-dump
+              mountPath: /usr/src/app/.reverse-geocoding-dump
+            - name: library
+              mountPath: /usr/src/app/upload
+      volumes:
+        - name: geocoding-dump
+          emptyDir: {}
+        - name: library
+          persistentVolumeClaim:
+            claimName: pvc-nfs-immich-library
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: immich-proxy
+  namespace: tools
+  labels:
+    app: immich-proxy
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: immich-proxy
+  template:
+    metadata:
+      labels:
+        app: immich-proxy
+    spec:
+      securityContext:
+        fsGroup: 2000
+      serviceAccountName: default
+      dnsPolicy: ClusterFirst
+      containers:
+        - name: immich-proxy
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-proxy:v1.47.3"
+          securityContext:
+            runAsUser: 1000
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 0
+            failureThreshold: 3
+            timeoutSeconds: 1
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 0
+            failureThreshold: 3
+            timeoutSeconds: 1
+            periodSeconds: 10
+          startupProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 0
+            failureThreshold: 30
+            timeoutSeconds: 1
+            periodSeconds: 5
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: immich-server
+  namespace: tools
+  labels:
+    app: immich-server
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: immich-server
+  template:
+    metadata:
+      labels:
+        app: immich-server
+    spec:
+      securityContext:
+        fsGroup: 2000
+      serviceAccountName: default
+      dnsPolicy: ClusterFirst
+      initContainers:
+        - name: postgresql-isready
+          image: "harbor.k8s.lan/dockerhub-proxy/bitnami/postgresql:14.5.0-debian-11-r6"
+          env:
+            - name: POSTGRESQL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: DB_USERNAME
+            - name: POSTGRESQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: immich-env
+                  key: DB_DATABASE_NAME
+          command:
+            - /bin/sh
+            - -c
+            - until pg_isready -U "${POSTGRESQL_USERNAME}" -d "dbname=${DB_DATABASE_NAME}" -h immich-postgresql-hl -p 5432 ; do sleep 2 ; done
+      containers:
+        - name: immich-server
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-server:v1.47.3"
+          securityContext:
+            runAsUser: 1000
+          ports:
+            - containerPort: 3001
+          command:
+            - /bin/sh
+          args:
+            - ./start-server.sh
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: DB_PASSWORD
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: DB_USERNAME
+            - name: MAPBOX_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: MAPBOX_KEY
+          envFrom:
+            - configMapRef:
+                name: immich-env
+                optional: false
+          livenessProbe:
+            tcpSocket:
+              port: 3001
+            initialDelaySeconds: 0
+            failureThreshold: 3
+            timeoutSeconds: 1
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 3001
+            initialDelaySeconds: 0
+            failureThreshold: 3
+            timeoutSeconds: 1
+            periodSeconds: 10
+          startupProbe:
+            tcpSocket:
+              port: 3001
+            initialDelaySeconds: 0
+            failureThreshold: 30
+            timeoutSeconds: 1
+            periodSeconds: 5
+          volumeMounts:
+            - name: geocoding-dump
+              mountPath: /usr/src/app/.reverse-geocoding-dump
+            - name: library
+              mountPath: /usr/src/app/upload
+      volumes:
+        - name: geocoding-dump
+          emptyDir: {}
+        - name: library
+          persistentVolumeClaim:
+            claimName: pvc-nfs-immich-library
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: immich-web
+  namespace: tools
+  labels:
+    app: immich-web
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: immich-web
+  template:
+    metadata:
+      labels:
+        app: immich-web
+    spec:
+      securityContext:
+        fsGroup: 2000
+      serviceAccountName: default
+      dnsPolicy: ClusterFirst
+      containers:
+        - name: immich-web
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-web:v1.47.3"
+          securityContext:
+            runAsUser: 1000
+          ports:
+            - containerPort: 3000
+          command:
+            - /bin/sh
+          args:
+            - ./entrypoint.sh
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: DB_PASSWORD
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: DB_USERNAME
+            - name: MAPBOX_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: immich-secret-env
+                  key: MAPBOX_KEY
+          envFrom:
+            - configMapRef:
+                name: immich-env
+                optional: false
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 0
+            failureThreshold: 3
+            timeoutSeconds: 1
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 0
+            failureThreshold: 3
+            timeoutSeconds: 1
+            periodSeconds: 10
+          startupProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 0
+            failureThreshold: 30
+            timeoutSeconds: 1
+            periodSeconds: 5
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: immich-postgresql-hl
+  namespace: tools
+  labels:
+    app: immich-postgresql
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: immich-postgresql
+  ports:
+    - name: tcp-postgresql
+      port: 5432
+      targetPort: tcp-postgresql
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: immich-redis-hl
+  namespace: tools
+  labels:
+    app: immich-redis-master
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  selector:
+    app: immich-redis-master
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - name: tcp-redis
+      port: 6379
+      targetPort: 6379
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: immich-machine-learning
+  namespace: tools
+  labels:
+    app: immich-machine-learning
+spec:
+  type: ClusterIP
+  selector:
+    app: immich-machine-learning
+  ports:
+    - port: 3003
+      targetPort: 3003
+      protocol: TCP
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: immich-proxy
+  namespace: tools
+  labels:
+    app: immich-proxy
+spec:
+  type: ClusterIP
+  selector:
+    app: immich-proxy
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: immich-server
+  namespace: tools
+  labels:
+    app: immich-server
+spec:
+  type: ClusterIP
+  selector:
+    app: immich-server
+  ports:
+    - port: 3001
+      targetPort: 3001
+      protocol: TCP
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: immich-web
+  namespace: tools
+  labels:
+    app: immich-web
+spec:
+  type: ClusterIP
+  selector:
+    app: immich-web
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: immich-private
+  namespace: tools
+  labels:
+    app: immich
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 20480m
+spec:
+  ingressClassName: nginx-private
+  rules:
+    - host: "immich.k8s.lan"
+      http:
+        paths:
+          - path: "/"
+            pathType: Prefix
+            backend:
+              service:
+                name: immich-proxy
+                port:
+                  number: 8080
