@@ -54,6 +54,32 @@ spec:
 kind: PersistentVolume
 apiVersion: v1
 metadata:
+  name: pv-iscsi-immich-cache
+  labels:
+    app: immich-cache
+spec:
+  storageClassName: "freenas-iscsi-manual-csi"
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: org.democratic-csi.node-manual
+    readOnly: false
+    fsType: xfs
+    volumeHandle: pv-iscsi-immich-cache
+    volumeAttributes:
+      portal: storage-server-lagg.lan:3260
+      iqn: iqn.2005-10.org.freenas.ctl:immich-cache
+      lun: "0"
+      node_attach_driver: iscsi
+      provisioner_driver: node-manual
+
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
   name: pv-nfs-immich-library
 spec:
   storageClassName: "freenas-nfs-manual-csi"
@@ -83,6 +109,8 @@ apiVersion: v1
 metadata:
   name: pvc-nfs-immich-library
   namespace: tools
+  labels:
+    app: immich
   annotations:
     volume.beta.kubernetes.io/storage-class: "freenas-nfs-manual-csi"
 spec:
@@ -93,6 +121,25 @@ spec:
     requests:
       storage: 600Gi
   volumeName: pv-nfs-immich-library
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pvc-iscsi-immich-cache
+  namespace: tools
+  labels:
+    app: immich
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "freenas-iscsi-manual-csi"
+spec:
+  storageClassName: freenas-iscsi-manual-csi
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  volumeName: pv-iscsi-immich-cache
 
 ---
 kind: SealedSecret
@@ -651,15 +698,15 @@ spec:
             - until pg_isready -U "${POSTGRESQL_USERNAME}" -d "dbname=${DB_DATABASE_NAME}" -h immich-postgresql-hl -p 5432 ; do sleep 2 ; done
       containers:
         - name: immich-machine-learning
-          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-machine-learning:v1.43.0"
+          image: "ghcr.io/immich-app/immich-machine-learning:pr-1830"
           securityContext:
             runAsUser: 1000
           ports:
             - containerPort: 3003
           command:
-            - /bin/sh
+            - python
           args:
-            - ./entrypoint.sh
+            - "src/main.py"
           env:
             - name: DB_PASSWORD
               valueFrom:
@@ -706,12 +753,18 @@ spec:
               mountPath: /usr/src/app/.reverse-geocoding-dump
             - name: library
               mountPath: /usr/src/app/upload
+            - name: cache
+              mountPath: /cache
       volumes:
         - name: geocoding-dump
           emptyDir: {}
         - name: library
           persistentVolumeClaim:
             claimName: pvc-nfs-immich-library
+        - name: cache
+          persistentVolumeClaim:
+            claimName: pvc-iscsi-immich-cache
+
 
 ---
 kind: Deployment
@@ -755,7 +808,7 @@ spec:
             - until pg_isready -U "${POSTGRESQL_USERNAME}" -d "dbname=${DB_DATABASE_NAME}" -h immich-postgresql-hl -p 5432 ; do sleep 2 ; done
       containers:
         - name: immich-microservice
-          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-server:v1.47.3"
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-server:v1.48.1"
           securityContext:
             runAsUser: 1000
           command:
@@ -819,7 +872,7 @@ spec:
       dnsPolicy: ClusterFirst
       containers:
         - name: immich-proxy
-          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-proxy:v1.47.3"
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-proxy:v1.48.1"
           securityContext:
             runAsUser: 1000
           ports:
@@ -889,7 +942,7 @@ spec:
             - until pg_isready -U "${POSTGRESQL_USERNAME}" -d "dbname=${DB_DATABASE_NAME}" -h immich-postgresql-hl -p 5432 ; do sleep 2 ; done
       containers:
         - name: immich-server
-          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-server:v1.47.3"
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-server:v1.48.1"
           securityContext:
             runAsUser: 1000
           ports:
@@ -976,7 +1029,7 @@ spec:
       dnsPolicy: ClusterFirst
       containers:
         - name: immich-web
-          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-web:v1.47.3"
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-web:v1.48.1"
           securityContext:
             runAsUser: 1000
           ports:
