@@ -566,7 +566,6 @@ spec:
       containers:
         - name: redis
           image: "harbor.k8s.lan/dockerhub-proxy/bitnami/redis:6.2.7-debian-11-r9"
-          imagePullPolicy: "IfNotPresent"
           securityContext:
             runAsUser: 1000
           command:
@@ -698,7 +697,7 @@ spec:
             - until pg_isready -U "${POSTGRESQL_USERNAME}" -d "dbname=${DB_DATABASE_NAME}" -h immich-postgresql-hl -p 5432 ; do sleep 2 ; done
       containers:
         - name: immich-machine-learning
-          image: "ghcr.io/immich-app/immich-machine-learning:pr-1830"
+          image: "ghcr.io/immich-app/immich-machine-learning:v1.49.0"
           securityContext:
             runAsUser: 1000
           ports:
@@ -808,7 +807,7 @@ spec:
             - until pg_isready -U "${POSTGRESQL_USERNAME}" -d "dbname=${DB_DATABASE_NAME}" -h immich-postgresql-hl -p 5432 ; do sleep 2 ; done
       containers:
         - name: immich-microservice
-          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-server:v1.48.1"
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-server:v1.49.0"
           securityContext:
             runAsUser: 1000
           command:
@@ -872,7 +871,7 @@ spec:
       dnsPolicy: ClusterFirst
       containers:
         - name: immich-proxy
-          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-proxy:v1.48.1"
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-proxy:v1.49.0"
           securityContext:
             runAsUser: 1000
           ports:
@@ -942,7 +941,7 @@ spec:
             - until pg_isready -U "${POSTGRESQL_USERNAME}" -d "dbname=${DB_DATABASE_NAME}" -h immich-postgresql-hl -p 5432 ; do sleep 2 ; done
       containers:
         - name: immich-server
-          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-server:v1.48.1"
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-server:v1.49.0"
           securityContext:
             runAsUser: 1000
           ports:
@@ -1029,7 +1028,7 @@ spec:
       dnsPolicy: ClusterFirst
       containers:
         - name: immich-web
-          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-web:v1.48.1"
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-web:v1.49.0"
           securityContext:
             runAsUser: 1000
           ports:
