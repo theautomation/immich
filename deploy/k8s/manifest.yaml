@@ -479,7 +479,8 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - exec pg_isready -U "${POSTGRESQL_USERNAME}" -d "dbname=${DB_DATABASE_NAME}" -h 127.0.0.1 -p 5432
+                - exec pg_isready -U "${POSTGRESQL_USERNAME}" -d
+                  "dbname=${DB_DATABASE_NAME}" -h 127.0.0.1 -p 5432
           readinessProbe:
             failureThreshold: 6
             initialDelaySeconds: 5
@@ -549,19 +550,6 @@ spec:
       securityContext:
         fsGroup: 2000
       serviceAccountName: immich-redis
-      affinity:
-        podAffinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - podAffinityTerm:
-                labelSelector:
-                  matchLabels:
-                    app: immich-redis-master
-                namespaces:
-                  - "tools"
-                topologyKey: kubernetes.io/hostname
-              weight: 1
-        nodeAffinity:
       terminationGracePeriodSeconds: 30
       containers:
         - name: redis
@@ -694,7 +682,9 @@ spec:
           command:
             - /bin/sh
             - -c
-            - until pg_isready -U "${POSTGRESQL_USERNAME}" -d "dbname=${DB_DATABASE_NAME}" -h immich-postgresql-hl -p 5432 ; do sleep 2 ; done
+            - until pg_isready -U "${POSTGRESQL_USERNAME}" -d
+              "dbname=${DB_DATABASE_NAME}" -h immich-postgresql-hl -p 5432 ; do
+              sleep 2 ; done
       containers:
         - name: immich-machine-learning
           image: "ghcr.io/immich-app/immich-machine-learning:v1.49.0"
@@ -754,6 +744,7 @@ spec:
               mountPath: /usr/src/app/upload
             - name: cache
               mountPath: /cache
+          resources: {}
       volumes:
         - name: geocoding-dump
           emptyDir: {}
@@ -763,7 +754,6 @@ spec:
         - name: cache
           persistentVolumeClaim:
             claimName: pvc-iscsi-immich-cache
-
 
 ---
 kind: Deployment
@@ -804,7 +794,9 @@ spec:
           command:
             - /bin/sh
             - -c
-            - until pg_isready -U "${POSTGRESQL_USERNAME}" -d "dbname=${DB_DATABASE_NAME}" -h immich-postgresql-hl -p 5432 ; do sleep 2 ; done
+            - until pg_isready -U "${POSTGRESQL_USERNAME}" -d
+              "dbname=${DB_DATABASE_NAME}" -h immich-postgresql-hl -p 5432 ; do
+              sleep 2 ; done
       containers:
         - name: immich-microservice
           image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-server:v1.49.0"
@@ -839,6 +831,7 @@ spec:
               mountPath: /usr/src/app/.reverse-geocoding-dump
             - name: library
               mountPath: /usr/src/app/upload
+          resources: {}
       volumes:
         - name: geocoding-dump
           emptyDir: {}
@@ -897,6 +890,7 @@ spec:
             failureThreshold: 30
             timeoutSeconds: 1
             periodSeconds: 5
+          resources: {}
 
 ---
 kind: Deployment
@@ -938,7 +932,9 @@ spec:
           command:
             - /bin/sh
             - -c
-            - until pg_isready -U "${POSTGRESQL_USERNAME}" -d "dbname=${DB_DATABASE_NAME}" -h immich-postgresql-hl -p 5432 ; do sleep 2 ; done
+            - until pg_isready -U "${POSTGRESQL_USERNAME}" -d
+              "dbname=${DB_DATABASE_NAME}" -h immich-postgresql-hl -p 5432 ; do
+              sleep 2 ; done
       containers:
         - name: immich-server
           image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-server:v1.49.0"
@@ -996,6 +992,7 @@ spec:
               mountPath: /usr/src/app/.reverse-geocoding-dump
             - name: library
               mountPath: /usr/src/app/upload
+          resources: {}
       volumes:
         - name: geocoding-dump
           emptyDir: {}
@@ -1078,6 +1075,7 @@ spec:
             failureThreshold: 30
             timeoutSeconds: 1
             periodSeconds: 5
+          resources: {}
 
 ---
 kind: Service
