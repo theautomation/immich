@@ -687,7 +687,7 @@ spec:
               sleep 2 ; done
       containers:
         - name: immich-machine-learning
-          image: "ghcr.io/immich-app/immich-machine-learning:v1.49.0"
+          image: "ghcr.io/immich-app/immich-machine-learning:v1.50.1"
           securityContext:
             runAsUser: 1000
           ports:
@@ -799,7 +799,7 @@ spec:
               sleep 2 ; done
       containers:
         - name: immich-microservice
-          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-server:v1.49.0"
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-server:v1.50.1"
           securityContext:
             runAsUser: 1000
           command:
@@ -864,7 +864,7 @@ spec:
       dnsPolicy: ClusterFirst
       containers:
         - name: immich-proxy
-          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-proxy:v1.49.0"
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-proxy:v1.50.1"
           securityContext:
             runAsUser: 1000
           ports:
@@ -937,7 +937,7 @@ spec:
               sleep 2 ; done
       containers:
         - name: immich-server
-          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-server:v1.49.0"
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-server:v1.50.1"
           securityContext:
             runAsUser: 1000
           ports:
@@ -1025,7 +1025,7 @@ spec:
       dnsPolicy: ClusterFirst
       containers:
         - name: immich-web
-          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-web:v1.49.0"
+          image: "harbor.k8s.lan/dockerhub-proxy/altran1502/immich-web:v1.50.1"
           securityContext:
             runAsUser: 1000
           ports:
